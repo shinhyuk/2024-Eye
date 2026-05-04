@@ -51,6 +51,36 @@ window.addEventListener("keydown", (e) => {
 });
 
 window.addEventListener("resize", () => game.resize());
+window.addEventListener("orientationchange", () => {
+  // re-render after rotation finishes
+  setTimeout(() => game.resize(), 200);
+});
+
+// Touch swipe controls (for mobile)
+(() => {
+  let start = null;
+  const MIN_DIST = 24;
+  boardEl.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    start = { x: t.clientX, y: t.clientY };
+  }, { passive: true });
+  boardEl.addEventListener("touchmove", (e) => {
+    // prevent page scroll while swiping inside the board
+    if (start) e.preventDefault();
+  }, { passive: false });
+  boardEl.addEventListener("touchend", (e) => {
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    start = null;
+    const adx = Math.abs(dx), ady = Math.abs(dy);
+    if (Math.max(adx, ady) < MIN_DIST) return;
+    if (adx > ady) game.move(dx > 0 ? "right" : "left");
+    else           game.move(dy > 0 ? "down"  : "up");
+  });
+})();
 
 // ---- Eye tracker ----
 const tracker = new EyeTracker({

@@ -78,7 +78,10 @@ export class EyeTracker {
       },
       width: 640,
       height: 480,
+      facingMode: "user",
     });
+    // playsinline + muted are already set on the <video> element so iOS can
+    // play the stream inline without going fullscreen.
     await this.camera.start();
     this.running = true;
     this.onStatus("실행 중 (보정 필요)");

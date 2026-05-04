@@ -17,45 +17,63 @@ body {
   background: var(--bg);
   color: var(--text-dark);
   min-height: 100vh;
-  padding: 24px 16px 48px;
+  padding: 16px 12px 32px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 600px) {
+  body { padding: 24px 16px 48px; }
 }
 
 header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 header h1 {
   margin: 0;
-  font-size: 36px;
+  font-size: 28px;
   letter-spacing: -0.5px;
 }
 
 .subtitle {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: #998a7d;
-  font-size: 14px;
+  font-size: 13px;
+}
+
+@media (min-width: 600px) {
+  header { margin-bottom: 24px; }
+  header h1 { font-size: 36px; }
+  .subtitle { font-size: 14px; margin-top: 6px; }
 }
 
 main {
   display: grid;
-  grid-template-columns: minmax(320px, 480px) minmax(280px, 400px);
-  gap: 32px;
+  grid-template-columns: minmax(280px, 480px) minmax(280px, 400px);
+  gap: 24px;
   justify-content: center;
   align-items: flex-start;
+  max-width: 920px;
+  margin: 0 auto;
 }
 
 @media (max-width: 880px) {
-  main { grid-template-columns: 1fr; }
+  main { grid-template-columns: minmax(0, 1fr); gap: 16px; }
 }
 
 /* ----- Game panel ----- */
 .game-panel {
   background: var(--panel);
-  padding: 20px;
+  padding: 14px;
   border-radius: 12px;
   box-shadow: var(--shadow);
   position: relative;
+}
+
+@media (min-width: 600px) {
+  .game-panel { padding: 20px; }
 }
 
 .score-row {
@@ -111,6 +129,7 @@ main {
   gap: 10px;
   aspect-ratio: 1 / 1;
   user-select: none;
+  touch-action: none;
 }
 
 .cell {
@@ -180,9 +199,13 @@ main {
 /* ----- Eye panel ----- */
 .eye-panel {
   background: var(--panel);
-  padding: 20px;
+  padding: 14px;
   border-radius: 12px;
   box-shadow: var(--shadow);
+}
+
+@media (min-width: 600px) {
+  .eye-panel { padding: 20px; }
 }
 
 .eye-panel h2 {
@@ -251,11 +274,13 @@ main {
   background: var(--accent);
   color: var(--text-light);
   border: none;
-  padding: 10px;
+  padding: 12px 10px;
   border-radius: 6px;
   font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
   min-width: 90px;
+  min-height: 44px;
 }
 
 .eye-buttons button:disabled {
