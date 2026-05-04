@@ -49,6 +49,8 @@ export class EyeTracker {
     this.cooldownMs = 600;     // min time between emitted gaze events
     this.lastEmit = 0;
     this.lastDir = null;       // require returning toward center before re-emit
+    this.invertX = false;
+    this.invertY = false;
 
     this.calibration = { x: 0, y: 0, set: false };
     this.lastGaze = { x: 0, y: 0 }; // latest measured normalized gaze
@@ -113,6 +115,8 @@ export class EyeTracker {
 
   setSensitivity(v) { this.sensitivity = Number(v); }
   setCooldown(v) { this.cooldownMs = Number(v); }
+  setInvertX(v) { this.invertX = !!v; }
+  setInvertY(v) { this.invertY = !!v; }
 
   _onResults(res) {
     const w = this.video.videoWidth || 640;
@@ -195,9 +199,15 @@ export class EyeTracker {
     const lxN = (lIris.x - lxMin) / lxRange;
     const lyN = (lIris.y - lyMin) / lyRange;
 
-    // Average and shift to be centered on 0 (so range ~ -0.5..0.5)
-    const x = (rxN + lxN) / 2 - 0.5;
-    const y = (ryN + lyN) / 2 - 0.5;
+    // Average and shift to be centered on 0 (so range ~ -0.5..0.5).
+    // The camera frame is unmirrored: when the user looks to their right,
+    // the iris moves toward the LEFT side of the image. Negate x here so
+    // positive x means "user is looking to their right" — matching the
+    // mirrored video the user actually sees on screen.
+    let x = -((rxN + lxN) / 2 - 0.5);
+    let y = (ryN + lyN) / 2 - 0.5;
+    if (this.invertX) x = -x;
+    if (this.invertY) y = -y;
     return { x, y };
   }
 

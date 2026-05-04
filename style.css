@@ -190,6 +190,8 @@ main {
   z-index: 5;
 }
 
+.game-msg[hidden] { display: none; }
+
 .game-msg p {
   font-size: 28px;
   font-weight: 700;
@@ -286,6 +288,14 @@ main {
 .eye-buttons button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-dark);
 }
 
 .hint {

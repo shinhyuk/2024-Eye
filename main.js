@@ -20,6 +20,8 @@ const sensInput = document.getElementById("sensitivity");
 const sensVal = document.getElementById("sensitivity-val");
 const cdInput = document.getElementById("cooldown");
 const cdVal = document.getElementById("cooldown-val");
+const invertXChk = document.getElementById("invert-x");
+const invertYChk = document.getElementById("invert-y");
 
 // ---- Game ----
 const game = new Game2048(boardEl, ({ score, best, over, won }) => {
@@ -137,6 +139,8 @@ cdInput.addEventListener("input", () => {
   tracker.setCooldown(cdInput.value);
   cdVal.textContent = cdInput.value;
 });
+invertXChk.addEventListener("change", () => tracker.setInvertX(invertXChk.checked));
+invertYChk.addEventListener("change", () => tracker.setInvertY(invertYChk.checked));
 
 // initial display
 sensVal.textContent = Number(sensInput.value).toFixed(2);
