@@ -45,7 +45,7 @@ export class EyeTracker {
     this.camera = null;
     this.running = false;
 
-    this.sensitivity = 0.12;   // gaze ratio threshold from center
+    this.sensitivity = 0.07;   // gaze ratio threshold from center
     this.cooldownMs = 600;     // min time between emitted gaze events
     this.lastEmit = 0;
     this.lastDir = null;       // require returning toward center before re-emit
@@ -137,8 +137,15 @@ export class EyeTracker {
 
     if (!this.calibration.set) return;
 
-    const dx = gaze.x - this.calibration.x;
-    const dy = gaze.y - this.calibration.y;
+    let dx = gaze.x - this.calibration.x;
+    let dy = gaze.y - this.calibration.y;
+    // Vertical eye movement is physically smaller than horizontal; boost it
+    // so the same sensitivity threshold can fire both axes.
+    dy *= 1.8;
+    // User-facing axis inversion (applied after calibration so it doesn't
+    // invalidate the stored center).
+    if (this.invertX) dx = -dx;
+    if (this.invertY) dy = -dy;
     const adx = Math.abs(dx);
     const ady = Math.abs(dy);
 
@@ -163,8 +170,10 @@ export class EyeTracker {
   }
 
   _computeGaze(lm, w, h) {
-    // Compute normalized iris position within each eye's bounding box.
-    // Output: {x, y} averaged for both eyes, range roughly [-0.5, 0.5].
+    // Compute iris offset from each eye's center, normalized by eye WIDTH.
+    // Using width for both axes (instead of width-for-x and height-for-y)
+    // avoids the vertical signal being amplified when eyelids narrow the
+    // eye opening, and keeps left/right and up/down on the same scale.
     const px = (i) => ({ x: lm[i].x * w, y: lm[i].y * h });
 
     const rOuter = px(R_EYE_OUTER), rInner = px(R_EYE_INNER);
@@ -175,39 +184,26 @@ export class EyeTracker {
     const lTop = px(L_EYE_TOP),     lBottom = px(L_EYE_BOTTOM);
     const lIris = px(L_IRIS_CENTER);
 
-    // For right eye: outer is to subject's right (small x in image), inner near nose.
-    // We need a horizontal axis ratio. Use min/max for safety.
-    const rxMin = Math.min(rOuter.x, rInner.x);
-    const rxMax = Math.max(rOuter.x, rInner.x);
-    const ryMin = Math.min(rTop.y, rBottom.y);
-    const ryMax = Math.max(rTop.y, rBottom.y);
+    const rEyeCx = (rOuter.x + rInner.x) / 2;
+    const rEyeCy = (rTop.y + rBottom.y) / 2;
+    const lEyeCx = (lOuter.x + lInner.x) / 2;
+    const lEyeCy = (lTop.y + lBottom.y) / 2;
 
-    const lxMin = Math.min(lOuter.x, lInner.x);
-    const lxMax = Math.max(lOuter.x, lInner.x);
-    const lyMin = Math.min(lTop.y, lBottom.y);
-    const lyMax = Math.max(lTop.y, lBottom.y);
+    const rEyeW = Math.abs(rOuter.x - rInner.x);
+    const lEyeW = Math.abs(lOuter.x - lInner.x);
+    if (rEyeW < 1 || lEyeW < 1) return null;
 
-    const rxRange = rxMax - rxMin;
-    const ryRange = ryMax - ryMin;
-    const lxRange = lxMax - lxMin;
-    const lyRange = lyMax - lyMin;
-    if (rxRange < 1 || lxRange < 1 || ryRange < 1 || lyRange < 1) return null;
+    const rxOff = (rIris.x - rEyeCx) / rEyeW;
+    const ryOff = (rIris.y - rEyeCy) / rEyeW;
+    const lxOff = (lIris.x - lEyeCx) / lEyeW;
+    const lyOff = (lIris.y - lEyeCy) / lEyeW;
 
-    // Normalized iris position within eye box (0..1)
-    const rxN = (rIris.x - rxMin) / rxRange;
-    const ryN = (rIris.y - ryMin) / ryRange;
-    const lxN = (lIris.x - lxMin) / lxRange;
-    const lyN = (lIris.y - lyMin) / lyRange;
-
-    // Average and shift to be centered on 0 (so range ~ -0.5..0.5).
     // The camera frame is unmirrored: when the user looks to their right,
-    // the iris moves toward the LEFT side of the image. Negate x here so
-    // positive x means "user is looking to their right" — matching the
-    // mirrored video the user actually sees on screen.
-    let x = -((rxN + lxN) / 2 - 0.5);
-    let y = (ryN + lyN) / 2 - 0.5;
-    if (this.invertX) x = -x;
-    if (this.invertY) y = -y;
+    // the iris moves toward the LEFT of the image. Negate x so positive x
+    // means "user is looking to their right" — matching the mirrored video
+    // they actually see on screen.
+    const x = -((rxOff + lxOff) / 2);
+    const y = (ryOff + lyOff) / 2;
     return { x, y };
   }
 
@@ -247,9 +243,12 @@ export class EyeTracker {
     ctx.lineTo(margin + boxSize, margin + boxSize / 2);
     ctx.stroke();
 
-    const dx = this.calibration.set ? gaze.x - this.calibration.x : gaze.x;
-    const dy = this.calibration.set ? gaze.y - this.calibration.y : gaze.y;
-    const scale = boxSize * 2.5;
+    let dx = this.calibration.set ? gaze.x - this.calibration.x : gaze.x;
+    let dy = this.calibration.set ? gaze.y - this.calibration.y : gaze.y;
+    dy *= 1.8;
+    if (this.invertX) dx = -dx;
+    if (this.invertY) dy = -dy;
+    const scale = boxSize * 3.5;
     const cx = margin + boxSize / 2 + Math.max(-boxSize / 2, Math.min(boxSize / 2, dx * scale));
     const cy = margin + boxSize / 2 + Math.max(-boxSize / 2, Math.min(boxSize / 2, dy * scale));
 

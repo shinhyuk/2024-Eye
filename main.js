@@ -129,7 +129,11 @@ stopCamBtn.addEventListener("click", () => {
   gazeDirEl.textContent = "-";
 });
 
-calibrateBtn.addEventListener("click", () => tracker.calibrate());
+calibrateBtn.addEventListener("click", () => {
+  tracker.calibrate();
+  // Bring the game board into view so the player can start playing right away.
+  document.querySelector(".game-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
 
 sensInput.addEventListener("input", () => {
   tracker.setSensitivity(sensInput.value);
