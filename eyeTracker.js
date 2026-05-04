@@ -20,6 +20,9 @@ const L_EYE_INNER = 362;
 const L_EYE_TOP = 386;
 const L_EYE_BOTTOM = 374;
 const L_IRIS_CENTER = 473;
+// Face landmarks for head-pitch detection
+const FOREHEAD = 10;
+const CHIN = 152;
 
 function loadScript(src) {
   return new Promise((resolve, reject) => {
@@ -139,9 +142,6 @@ export class EyeTracker {
 
     let dx = gaze.x - this.calibration.x;
     let dy = gaze.y - this.calibration.y;
-    // Vertical eye movement is physically smaller than horizontal; boost it
-    // so the same sensitivity threshold can fire both axes.
-    dy *= 1.8;
     // User-facing axis inversion (applied after calibration so it doesn't
     // invalidate the stored center).
     if (this.invertX) dx = -dx;
@@ -198,12 +198,24 @@ export class EyeTracker {
     const lxOff = (lIris.x - lEyeCx) / lEyeW;
     const lyOff = (lIris.y - lEyeCy) / lEyeW;
 
+    // Head pitch from MediaPipe z-depth. The z origin is at head center;
+    // smaller z = closer to camera. When the user nods DOWN (chin to chest),
+    // the chin recedes from the camera (chin.z grows) while the forehead
+    // moves toward the camera (forehead.z shrinks). So chin.z - forehead.z
+    // is positive when looking down, negative when looking up. People
+    // naturally tilt their head for vertical input, so this is far more
+    // reliable than the small iris movement within the eye opening.
+    const headPitch = lm[CHIN].z - lm[FOREHEAD].z;
+
     // The camera frame is unmirrored: when the user looks to their right,
     // the iris moves toward the LEFT of the image. Negate x so positive x
     // means "user is looking to their right" — matching the mirrored video
     // they actually see on screen.
     const x = -((rxOff + lxOff) / 2);
-    const y = (ryOff + lyOff) / 2;
+    // Combine eye iris vertical and head pitch. Head pitch dominates because
+    // its physical range is much larger; the iris term still contributes for
+    // users who keep their head still and only move their eyes.
+    const y = (ryOff + lyOff) / 2 + headPitch * 2.0;
     return { x, y };
   }
 
@@ -245,7 +257,6 @@ export class EyeTracker {
 
     let dx = this.calibration.set ? gaze.x - this.calibration.x : gaze.x;
     let dy = this.calibration.set ? gaze.y - this.calibration.y : gaze.y;
-    dy *= 1.8;
     if (this.invertX) dx = -dx;
     if (this.invertY) dy = -dy;
     const scale = boxSize * 3.5;
